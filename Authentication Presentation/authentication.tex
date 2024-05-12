@@ -1,0 +1,174 @@
+\documentclass{beamer}
+\usepackage[utf8]{inputenc}
+\usepackage{graphicx}
+\usepackage{textcomp}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{hyperref}
+\usepackage{xurl}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,
+    urlcolor=cyan,
+}
+
+\usetheme{metropolis}
+\urlstyle{same}
+
+\graphicspath{{./images}}
+
+%opening
+\title{2FA Using Passwords and Time-based One-time Passwords}
+\institute{University of Jordan}
+\author{Ward M. Zahran}
+
+\begin{document}
+
+\frame{\titlepage}
+
+\begin{frame}
+
+    \frametitle{Prelude}
+    This work is licensed under CC BY-SA 4.0
+
+    Source files and images can be found on:
+    \href{https://github.com/ward-zahran/}{https://github.com/ward-zahran/}
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{Table of Contents}
+    \tableofcontents
+\end{frame}
+
+\section{Introduction}
+\begin{frame}
+
+    \frametitle{Project Goals}
+    This project implements TOTP as a second factor for traditional password authentication. 
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Presentation Goals}
+    \begin{itemize}
+        \item 
+            Showcase how TOTP and its ancestor HOTP work. 
+        \item 
+            Showcase my implementation of 2FA using TOTP.
+    \end{itemize}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Why talk about HOTP?}
+    TOTP is an extention of HOTP so understanding the latter is paramount to understanding the former.
+\end{frame}
+
+\section{Explaining HOTP and TOTP}
+\subsection{HOTP}
+\begin{frame}
+
+    \frametitle{Understanding HOTP (RFC 4226)}
+    HOTP, short for HMAC-Based One-Time Password, is an algorithm which uses:
+    \begin{itemize}
+        \item 
+            A symetric secret key (K).
+        \item 
+            A hash function (H) the default being SHA-1.
+        \item 
+            A counter value (C) in order to generate one time passwords.
+        \item 
+            A HOTP value length (D) (6–10, default is 6, and 6–8 is recommended).
+    \end{itemize}
+
+    These values must be agreed upon by both parties, in our case the webapp and the user.
+
+\end{frame}
+
+\begin{frame}
+    \frametitle{How HOTP works mathmatically.}
+    $HOTP  value = HOTP(K, C) mod 10^D$ \\
+    $HOTP(K, C) = truncate(HMACH(K, C))$ \\
+    $truncate(MAC) = extract31(MAC, MAC[(19 × 8 + 4):(19 × 8 + 7)])$ \\
+    $extract31(MAC, i) = MAC[(i × 8 + 1):(i × 8 + 4 × 8 − 1)]$ \\
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{How HOTP works in human words.}
+    \begin{enumerate}
+        \item 
+            We generate a HOTP value from the HTOP(K, C) modulo 10 to the power of the key length D.
+        \item 
+            The HOTP function first generates the HMAC using K and C and then truncates it.
+        \item 
+            The truncate function does some math on the hash and then produces the value. 
+        \item 
+            Once the value generated both parties increment the counter C independently.
+    \end{enumerate}
+\end{frame}
+
+\subsection{TOTP}
+\begin{frame}
+
+    \frametitle{How TOTP works.}
+    TOTP uses the same exact algorithm but instead of a counter we use a new value based on time which we will call T. 
+
+    So our algorithm ends up being:
+    $HOTP  value = HOTP(K, T) mod 10^D$ \\
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{How to calculate T.}
+    Per RFC 6238:
+
+    T = (Current Unix time - T0) / X
+
+    where:
+
+    \begin{itemize}
+        \item 
+            T0 is is the Unix time to start counting time steps (default value is 0, i.e., the Unix epoch). Meaning an agreed upon time from which to start counting the time.
+        \item 
+            X is the time step in seconds (default value X = 30 seconds). Meaning the amount of time before each code changes.
+    \end{itemize}
+
+\end{frame}
+
+\section{The Project}
+\begin{frame}
+
+    \frametitle{Why TOTP over HOTP?}
+    It is easier as I nor the user need to keep track of a counter.
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{How My Project Works.}
+    \begin{enumerate}
+        \item 
+            After user registration and first login the user is prompted with a QR code and an input box.
+        \item 
+            The user scans the code via an authenticator application either on their phone or desktop and then inputs the code that appears on it as to verify that they scanned the QR and that they successfully aquired the secret key.
+        \item 
+            On each login after that the user is prompted with a box to input the number on their application to verify their identity.
+        \item 
+            If the user fails to enter the OTP three times then the user will be forwarded back to the login page as to disable an attacker from brute forcing the OTP in case he has aquired a users password.
+    \end{enumerate}
+
+\end{frame}
+
+\begin{frame}
+
+    \frametitle{Live Demo}
+    Now for a showcase.
+\end{frame}
+\end{document}
